@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hy">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Հայ ժողովրդի պատմություն — TimelineJS</title>
+    <link
+      title="timeline-styles"
+      rel="stylesheet"
+      href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+        background: #1a1a1a;
+      }
+      #timeline-embed {
+        width: 100%;
+        height: 100vh;
+        min-height: 480px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="timeline-embed"></div>
+    <script src="timeline-data.js"></script>
+    <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+    <script>
+      (function () {
+        if (typeof TL === "undefined" || !window.TIMELINE_DATA) {
+          document.getElementById("timeline-embed").innerHTML =
+            "<p style='padding:2rem;color:#fff;'>Չհաջողվեց բեռնել TimelineJS։ Ստուգեք ցանցի կապը (CDN)։</p>";
+          return;
+        }
+        new TL.Timeline("timeline-embed", window.TIMELINE_DATA, {
+          language: "hy",
+          initial_zoom: 1,
+          timenav_position: "bottom",
+          hash_bookmark: true,
+        });
+      })();
+    </script>
+  </body>
+</html>
