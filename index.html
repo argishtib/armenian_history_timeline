@@ -3,44 +3,625 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Հայ ժողովրդի պատմություն — TimelineJS</title>
+    <title>Հայաստան — ժամանակագրություն</title>
     <link
       title="timeline-styles"
       rel="stylesheet"
       href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css"
     />
     <style>
+      :root {
+        --bar-bg: #12151c;
+        --bar-border: #2a3142;
+        --text: #e8eaef;
+        --muted: #9aa3b5;
+      }
       html,
       body {
         margin: 0;
         height: 100%;
-        font-family: system-ui, "Segoe UI", Roboto, sans-serif;
-        background: #1a1a1a;
+        font-family:
+          system-ui,
+          "Segoe UI",
+          Roboto,
+          "Noto Sans Armenian",
+          "Noto Sans Arabic",
+          sans-serif;
+        background: #0d0f14;
+        color: var(--text);
+      }
+      body.fa-ui {
+        font-family:
+          "Noto Sans Arabic",
+          "Segoe UI",
+          system-ui,
+          sans-serif;
+      }
+      #app-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.75rem 1.25rem;
+        padding: 0.65rem 1rem;
+        background: var(--bar-bg);
+        border-bottom: 1px solid var(--bar-border);
+        position: relative;
+        z-index: 10;
+      }
+      .bar-section {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem 0.6rem;
+      }
+      .bar-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-right: 0.25rem;
+      }
+      .lang-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--bar-border);
+        background: #1c2230;
+        color: var(--text);
+        padding: 0.35rem 0.5rem;
+        min-width: 2.5rem;
+        min-height: 2.25rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      /* PNG flags: Windows shows emoji regional codes as “AM”, “US” — use images instead */
+      .lang-flag-img {
+        display: block;
+        width: 30px;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 2px;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+      }
+      .lang-btn:hover {
+        background: #252b3d;
+      }
+      .lang-btn.active {
+        border-color: #5dade2;
+        background: #1a3a52;
+      }
+      .cat-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .cat-dd-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--bar-border);
+        background: #1c2230;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 0.85rem;
+        color: var(--text);
+        cursor: pointer;
+        min-width: 12rem;
+        justify-content: space-between;
+      }
+      .cat-dd-btn:hover {
+        background: #252b3d;
+      }
+      .cat-dd-btn[aria-expanded="true"] {
+        border-color: #5dade2;
+      }
+      .cat-dd-btn .chev {
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+      .cat-dd-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: min(100vw - 2rem, 22rem);
+        max-height: min(70vh, 20rem);
+        overflow-y: auto;
+        background: #1a1f2e;
+        border: 1px solid var(--bar-border);
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        z-index: 100;
+        padding: 0.35rem 0;
+      }
+      .cat-dd-panel.open {
+        display: block;
+      }
+      .cat-dd-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.85rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .cat-dd-option:hover {
+        background: #252b3d;
+      }
+      .cat-dd-option input {
+        margin: 0;
+        flex-shrink: 0;
+      }
+      .cat-topic-icon {
+        font-size: 1.15rem;
+        line-height: 1;
+        width: 1.35rem;
+        text-align: center;
+        flex-shrink: 0;
+        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      }
+      .cat-dd-option .dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .cat-dd-option .n {
+        margin-left: auto;
+        font-size: 0.72rem;
+        color: var(--muted);
       }
       #timeline-embed {
         width: 100%;
-        height: 100vh;
-        min-height: 480px;
+        height: calc(100vh - var(--bar-h, 120px));
+        min-height: 420px;
       }
     </style>
   </head>
   <body>
+    <header id="app-bar" aria-label="Filters">
+      <div class="bar-section">
+        <span class="bar-label" id="label-lang">Լեզու</span>
+        <button
+          type="button"
+          class="lang-btn active"
+          data-lang="hy"
+          title="Հայերեն"
+          aria-label="Հայերեն"
+        >
+          <img
+            class="lang-flag-img"
+            src="https://flagcdn.com/w40/am.png"
+            srcset="https://flagcdn.com/w40/am.png 1x, https://flagcdn.com/w80/am.png 2x"
+            width="40"
+            height="30"
+            alt=""
+            decoding="async"
+            loading="lazy"
+          />
+        </button>
+        <button
+          type="button"
+          class="lang-btn"
+          data-lang="en"
+          title="English (US)"
+          aria-label="English (US)"
+        >
+          <img
+            class="lang-flag-img"
+            src="https://flagcdn.com/w40/us.png"
+            srcset="https://flagcdn.com/w40/us.png 1x, https://flagcdn.com/w80/us.png 2x"
+            width="40"
+            height="30"
+            alt=""
+            decoding="async"
+            loading="lazy"
+          />
+        </button>
+        <button
+          type="button"
+          class="lang-btn"
+          data-lang="ru"
+          title="Русский"
+          aria-label="Русский"
+        >
+          <img
+            class="lang-flag-img"
+            src="https://flagcdn.com/w40/ru.png"
+            srcset="https://flagcdn.com/w40/ru.png 1x, https://flagcdn.com/w80/ru.png 2x"
+            width="40"
+            height="30"
+            alt=""
+            decoding="async"
+            loading="lazy"
+          />
+        </button>
+        <button
+          type="button"
+          class="lang-btn"
+          data-lang="fa"
+          title="فارسی"
+          aria-label="فارسی"
+        >
+          <img
+            class="lang-flag-img"
+            src="https://flagcdn.com/w40/ir.png"
+            srcset="https://flagcdn.com/w40/ir.png 1x, https://flagcdn.com/w80/ir.png 2x"
+            width="40"
+            height="30"
+            alt=""
+            decoding="async"
+            loading="lazy"
+          />
+        </button>
+        <button
+          type="button"
+          class="lang-btn"
+          data-lang="fr"
+          title="Français"
+          aria-label="Français"
+        >
+          <img
+            class="lang-flag-img"
+            src="https://flagcdn.com/w40/fr.png"
+            srcset="https://flagcdn.com/w40/fr.png 1x, https://flagcdn.com/w80/fr.png 2x"
+            width="40"
+            height="30"
+            alt=""
+            decoding="async"
+            loading="lazy"
+          />
+        </button>
+      </div>
+      <div class="bar-section" style="flex: 1; min-width: 200px">
+        <span class="bar-label" id="label-cats">Բաժիններ</span>
+        <div class="cat-dropdown" id="cat-dropdown">
+          <button
+            type="button"
+            class="cat-dd-btn"
+            id="cat-dd-btn"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-controls="cat-dd-panel"
+          >
+            <span style="display: inline-flex; align-items: center; gap: 0.45rem">
+              <span class="cat-topic-icon" aria-hidden="true" id="cat-dd-btn-icon">📂</span>
+              <span id="cat-dd-summary">—</span>
+            </span>
+            <span class="chev" aria-hidden="true">▼</span>
+          </button>
+          <div
+            class="cat-dd-panel"
+            id="cat-dd-panel"
+            role="listbox"
+            aria-multiselectable="true"
+            dir="ltr"
+          ></div>
+        </div>
+      </div>
+    </header>
     <div id="timeline-embed"></div>
     <script src="timeline-data.js"></script>
     <script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
     <script>
       (function () {
-        if (typeof TL === "undefined" || !window.TIMELINE_DATA) {
-          document.getElementById("timeline-embed").innerHTML =
-            "<p style='padding:2rem;color:#fff;'>Չհաջողվեց բեռնել TimelineJS։ Ստուգեք ցանցի կապը (CDN)։</p>";
-          return;
+        var UI_STRINGS = {
+          hy: {
+            lang: "Լեզու",
+            cats: "Բաժիններ",
+            empty: "Ընտրեք առնվազն մեկ բաժին։",
+            catSummary: "{a} / {t} բաժին",
+          },
+          en: {
+            lang: "Language",
+            cats: "Categories",
+            empty: "Select at least one category.",
+            catSummary: "{a} / {t} categories",
+          },
+          ru: {
+            lang: "Язык",
+            cats: "Разделы",
+            empty: "Выберите хотя бы один раздел.",
+            catSummary: "{a} / {t} разделов",
+          },
+          fa: {
+            lang: "زبان",
+            cats: "بخش‌ها",
+            empty: "حداقل یک بخش را انتخاب کنید.",
+            catSummary: "{a} از {t} بخش",
+          },
+          fr: {
+            lang: "Langue",
+            cats: "Catégories",
+            empty: "Sélectionnez au moins une catégorie.",
+            catSummary: "{a} / {t} catégories",
+          },
+        };
+
+        var TL_LANG = { hy: "hy", en: "en", ru: "ru", fr: "fr", fa: "en" };
+
+        /** Emoji per topic sheet id (extend when you add sheets). */
+        var TOPIC_ICONS = {
+          hist: "🏛️",
+          leaders: "👤",
+          flag: "🚩",
+          map: "🗺️",
+          population: "👥",
+          gdp: "📈",
+          stem: "🔬",
+          sports: "⚽",
+          music: "🎵",
+          literature: "📚",
+        };
+
+        function getBundle() {
+          return window.TIMELINE_BUNDLE;
         }
-        new TL.Timeline("timeline-embed", window.TIMELINE_DATA, {
-          language: "hy",
-          initial_zoom: 0,
-          timenav_position: "bottom",
-          hash_bookmark: true,
+
+        function pickText(obj, lang) {
+          if (!obj) return "";
+          if (typeof obj === "string") return obj;
+          return obj[lang] || obj.hy || obj.en || "";
+        }
+
+        function toTimelineModel(bundle, lang, activeIds) {
+          var titleT = bundle.title && bundle.title[lang] ? bundle.title[lang] : bundle.title.hy;
+          var events = (bundle.events || [])
+            .filter(function (e) {
+              return activeIds.has(e.category);
+            })
+            .map(function (e) {
+              var loc = (e.locales && e.locales[lang]) || (e.locales && e.locales.hy) || {};
+              var ev = {
+                unique_id: e.unique_id,
+                start_date: JSON.parse(JSON.stringify(e.start_date)),
+                text: {
+                  headline: loc.headline || "",
+                  text: loc.text || "",
+                },
+              };
+              if (e.end_date) ev.end_date = JSON.parse(JSON.stringify(e.end_date));
+              var g = pickText(e.group, lang);
+              if (g) ev.group = g;
+              if (e.background) ev.background = JSON.parse(JSON.stringify(e.background));
+              return ev;
+            });
+
+          var model = {
+            title: { text: { headline: titleT.headline, text: titleT.text } },
+            events: events,
+          };
+          if (bundle.scale) model.scale = bundle.scale;
+          return model;
+        }
+
+        var timelineInstance = null;
+        var currentLang = "hy";
+        var activeCategories = new Set();
+        var totalCategoryCount = 0;
+
+        function setCatPanelOpen(open) {
+          var btn = document.getElementById("cat-dd-btn");
+          var panel = document.getElementById("cat-dd-panel");
+          if (!btn || !panel) return;
+          panel.classList.toggle("open", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        function isCatPanelOpen() {
+          var panel = document.getElementById("cat-dd-panel");
+          return panel && panel.classList.contains("open");
+        }
+
+        function updateCatDropdownSummary() {
+          var el = document.getElementById("cat-dd-summary");
+          if (!el) return;
+          var u = UI_STRINGS[currentLang] || UI_STRINGS.hy;
+          var t = totalCategoryCount;
+          var a = activeCategories.size;
+          el.textContent = u.catSummary.replace("{a}", String(a)).replace("{t}", String(t));
+        }
+
+        function setBarHeight() {
+          var bar = document.getElementById("app-bar");
+          document.documentElement.style.setProperty("--bar-h", bar.offsetHeight + "px");
+        }
+
+        function destroyTimeline() {
+          var el = document.getElementById("timeline-embed");
+          timelineInstance = null;
+          el.innerHTML = "";
+        }
+
+        function showEmpty(msg) {
+          destroyTimeline();
+          document.getElementById("timeline-embed").innerHTML =
+            '<p style="padding:2rem;color:#e8eaef;max-width:40rem;">' + msg + "</p>";
+        }
+
+        function renderTimeline() {
+          var bundle = getBundle();
+          if (!bundle || !bundle.events || !bundle.events.length) {
+            showEmpty("No data. Run <code>python build_timeline_from_excel.py</code>.");
+            return;
+          }
+          if (activeCategories.size === 0) {
+            showEmpty(UI_STRINGS[currentLang].empty);
+            return;
+          }
+          if (typeof TL === "undefined") {
+            showEmpty("Could not load TimelineJS (CDN). Check network.");
+            return;
+          }
+
+          var model = toTimelineModel(bundle, currentLang, activeCategories);
+          if (model.events.length === 0) {
+            showEmpty(UI_STRINGS[currentLang].empty);
+            return;
+          }
+
+          destroyTimeline();
+          timelineInstance = new TL.Timeline("timeline-embed", model, {
+            language: TL_LANG[currentLang] || "en",
+            initial_zoom: bundle.scale === "cosmological" ? 0 : 1,
+            timenav_position: "bottom",
+            hash_bookmark: true,
+          });
+        }
+
+        function syncLangButtons() {
+          document.querySelectorAll(".lang-btn").forEach(function (b) {
+            b.classList.toggle("active", b.getAttribute("data-lang") === currentLang);
+          });
+        }
+
+        function syncToolbarI18n() {
+          var u = UI_STRINGS[currentLang] || UI_STRINGS.hy;
+          document.getElementById("label-lang").textContent = u.lang;
+          document.getElementById("label-cats").textContent = u.cats;
+          document.body.classList.toggle("fa-ui", currentLang === "fa");
+          document.documentElement.lang =
+            currentLang === "fa" ? "fa" : currentLang === "hy" ? "hy" : currentLang;
+          document.documentElement.dir = "ltr";
+          var panel = document.getElementById("cat-dd-panel");
+          if (panel) panel.dir = currentLang === "fa" ? "rtl" : "ltr";
+          updateCatDropdownSummary();
+        }
+
+        function buildCategoryDropdown(bundle) {
+          var panel = document.getElementById("cat-dd-panel");
+          if (!panel) return;
+          panel.innerHTML = "";
+          activeCategories.clear();
+          var cats = bundle.categories || [];
+          totalCategoryCount = cats.length;
+
+          cats.forEach(function (c) {
+            activeCategories.add(c.id);
+
+            var row = document.createElement("label");
+            row.className = "cat-dd-option";
+            row.setAttribute("data-cat", c.id);
+            row.setAttribute("role", "option");
+
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = true;
+            cb.setAttribute("data-cat", c.id);
+
+            var icon = document.createElement("span");
+            icon.className = "cat-topic-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.textContent = TOPIC_ICONS[c.id] || "📌";
+
+            var dot = document.createElement("span");
+            dot.className = "dot";
+            dot.style.background = c.color;
+            dot.setAttribute("aria-hidden", "true");
+
+            var name = document.createElement("span");
+            name.className = "cat-opt-name";
+            var lbl = (c.labels && c.labels[currentLang]) || (c.labels && c.labels.hy) || c.id;
+            name.textContent = lbl;
+
+            var count = document.createElement("span");
+            count.className = "n";
+            count.textContent = "(" + (c.count || 0) + ")";
+
+            row.appendChild(cb);
+            row.appendChild(icon);
+            row.appendChild(dot);
+            row.appendChild(name);
+            row.appendChild(count);
+
+            cb.addEventListener("change", function () {
+              if (cb.checked) activeCategories.add(c.id);
+              else activeCategories.delete(c.id);
+              updateCatDropdownSummary();
+              setBarHeight();
+              renderTimeline();
+            });
+
+            panel.appendChild(row);
+          });
+
+          updateCatDropdownSummary();
+
+          var btn = document.getElementById("cat-dd-btn");
+          if (btn && !btn._catDdBound) {
+            btn._catDdBound = true;
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              setCatPanelOpen(!isCatPanelOpen());
+            });
+          }
+
+          if (!document.documentElement._catOutsideBound) {
+            document.documentElement._catOutsideBound = true;
+            document.addEventListener("click", function () {
+              setCatPanelOpen(false);
+            });
+            document.addEventListener("keydown", function (e) {
+              if (e.key === "Escape") setCatPanelOpen(false);
+            });
+          }
+
+          var dd = document.getElementById("cat-dropdown");
+          if (dd && !dd._catStopBound) {
+            dd._catStopBound = true;
+            dd.addEventListener("click", function (e) {
+              e.stopPropagation();
+            });
+          }
+        }
+
+        function refreshCategoryOptionLabels() {
+          var bundle = getBundle();
+          document.querySelectorAll(".cat-dd-option").forEach(function (row) {
+            var id = row.getAttribute("data-cat");
+            var cat = (bundle.categories || []).find(function (x) {
+              return x.id === id;
+            });
+            if (!cat) return;
+            var lbl =
+              (cat.labels && cat.labels[currentLang]) || (cat.labels && cat.labels.hy) || id;
+            var nameEl = row.querySelector(".cat-opt-name");
+            if (nameEl) nameEl.textContent = lbl;
+          });
+          updateCatDropdownSummary();
+        }
+
+        document.querySelectorAll(".lang-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            currentLang = btn.getAttribute("data-lang");
+            syncLangButtons();
+            syncToolbarI18n();
+            refreshCategoryOptionLabels();
+            setBarHeight();
+            renderTimeline();
+          });
         });
+
+        window.addEventListener("resize", function () {
+          setBarHeight();
+        });
+
+        function init() {
+          var bundle = getBundle();
+          if (!bundle) {
+            showEmpty("Missing timeline-data.js or TIMELINE_BUNDLE.");
+            return;
+          }
+          buildCategoryDropdown(bundle);
+          syncLangButtons();
+          syncToolbarI18n();
+          setBarHeight();
+          renderTimeline();
+        }
+
+        init();
       })();
     </script>
   </body>
